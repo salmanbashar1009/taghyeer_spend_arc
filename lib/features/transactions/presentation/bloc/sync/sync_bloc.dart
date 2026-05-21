@@ -1,7 +1,8 @@
-import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:taghyeer_spend_arc/features/transactions/presentation/bloc/sync/sync_event.dart';
 import 'package:taghyeer_spend_arc/features/transactions/presentation/bloc/sync/sync_state.dart';
+
+import '../../../../../core/offline/sync_manager.dart';
 
 /// SyncBloc manages background sync.
 class SyncBloc extends Bloc<SyncEvent, SyncState> {
