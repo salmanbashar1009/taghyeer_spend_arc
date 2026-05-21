@@ -12,14 +12,14 @@ import '../bloc/transaction_event.dart';
 import '../bloc/transaction_state.dart';
 import '../widgets/transaction_home_content.dart';
 
-class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+class TransactionHomePage extends StatefulWidget {
+  const TransactionHomePage({super.key});
 
   @override
-  State<HomePage> createState() => _HomePageState();
+  State<TransactionHomePage> createState() => _TransactionHomePageState();
 }
 
-class _HomePageState extends State<HomePage>
+class _TransactionHomePageState extends State<TransactionHomePage>
     with SingleTickerProviderStateMixin {
   late final AnimationController _meterController;
   late final AnimationController _chartController;
