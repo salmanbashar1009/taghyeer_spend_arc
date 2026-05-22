@@ -10,10 +10,8 @@ import '../../core/di/injection_container.dart';
 import '../../features/transactions/domain/entities/transaction_entity.dart';
 import '../../features/transactions/presentation/bloc/sync/sync_bloc.dart';
 import '../../features/transactions/presentation/bloc/sync/sync_event.dart';
-import '../../features/transactions/presentation/bloc/sync/sync_state.dart';
 import '../../features/transactions/presentation/bloc/transaction_bloc.dart';
 import '../../features/transactions/presentation/bloc/transaction_event.dart';
-import '../../features/transactions/presentation/bloc/transaction_state.dart';
 
 class MainShell extends StatefulWidget {
   final StatefulNavigationShell navigationShell;
