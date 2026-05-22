@@ -17,18 +17,16 @@ import '../offline/diffing_engine.dart';
 import '../offline/sync_manager.dart';
 import '../offline/write_queue.dart';
 
-
 final sl = GetIt.instance;
 
 Future<void> configureDependencies() async {
-  // DB is initialized once and shared across the app lifetime.
+  // ── External ──
   final db = await _initDatabase();
   sl.registerLazySingleton<Database>(() => db);
-
   sl.registerLazySingleton(() => Connectivity());
   sl.registerLazySingleton<NetworkInfo>(() => NetworkInfoImp(sl()));
 
-  //  Data Sources
+  // ── Data Sources ──
   sl.registerLazySingleton<TransactionLocalDataSource>(
         () => TransactionLocalDataSourceImpl(sl()),
   );
@@ -36,7 +34,7 @@ Future<void> configureDependencies() async {
         () => TransactionRemoteDataSourceImpl(),
   );
 
-  // Offline Infrastructure
+  // ── Offline Infrastructure ──
   sl.registerLazySingleton<WriteQueue>(() => WriteQueue(sl()));
   sl.registerLazySingleton<DiffingEngine>(() => DiffingEngine());
   sl.registerLazySingleton<SyncManager>(
@@ -49,7 +47,7 @@ Future<void> configureDependencies() async {
     ),
   );
 
-  // Repository
+  // ── Repository ──
   sl.registerLazySingleton<TransactionRepository>(
         () => TransactionRepositoryImpl(
       localDataSource: sl(),
@@ -59,19 +57,18 @@ Future<void> configureDependencies() async {
     ),
   );
 
-  // Use Cases
+  // ── Use Cases ──
   sl.registerLazySingleton(() => GetTransactions(sl()));
   sl.registerLazySingleton(() => AddTransaction(sl()));
   sl.registerLazySingleton(() => DeleteTransaction(sl()));
   sl.registerLazySingleton(() => SyncTransaction(sl()));
 
-  // BLoCs — factories because they hold state that should reset
+  // ── BLoCs — FACTORIES: new instance each call, caller owns lifecycle ──
   sl.registerFactory(() => TransactionBloc(
     getTransactions: sl(),
-    addTransaction: sl(),
-    deleteTransaction: sl(),
+    addTransactionUseCase: sl(),
+    deleteTransactionUseCase: sl(),
   ));
-
   sl.registerFactory(() => SyncBloc(syncManager: sl()));
 }
 
@@ -94,7 +91,6 @@ Future<Database> _initDatabase() async {
           updated_at TEXT NOT NULL
         )
       ''');
-      // Pending writes table — persists the write queue across app restarts
       await db.execute('''
         CREATE TABLE pending_writes (
           id INTEGER PRIMARY KEY AUTOINCREMENT,

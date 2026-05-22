@@ -3,20 +3,18 @@ import 'package:equatable/equatable.dart';
 
 enum TransactionType { income, expense }
 
-class TransactionEntity extends Equatable {
+class Transaction extends Equatable {
   final String id;
   final String title;
   final double amount;
   final TransactionType type;
   final String category;
   final DateTime date;
-
-
   final bool isSynced;
   final bool isDeleted;
   final DateTime updatedAt;
 
-  const TransactionEntity({
+  const Transaction({
     required this.id,
     required this.title,
     required this.amount,

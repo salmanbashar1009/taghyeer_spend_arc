@@ -5,13 +5,13 @@ import 'package:taghyeer_spend_arc/features/transactions/domain/repositories/tra
 
 import '../entities/transaction_entity.dart';
 
-class GetTransactions implements UseCase<List<TransactionEntity>, NoParams>{
+class GetTransactions implements UseCase<List<Transaction>, NoParams>{
   final TransactionRepository repository;
 
   GetTransactions(this.repository);
 
   @override
-  Future<Either<Failure, List<TransactionEntity>>> call(NoParams params){
+  Future<Either<Failure, List<Transaction>>> call(NoParams params){
     return repository.getTransactions();
   }
 }

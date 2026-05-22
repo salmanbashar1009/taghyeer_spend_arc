@@ -5,7 +5,6 @@ import '../../domain/entities/transaction_entity.dart';
 
 abstract class TransactionState extends Equatable {
   const TransactionState();
-
   @override
   List<Object?> get props => [];
 }
@@ -15,15 +14,11 @@ class TransactionInitial extends TransactionState {}
 class TransactionLoading extends TransactionState {}
 
 class TransactionLoaded extends TransactionState {
-  final List<TransactionEntity> transactions;
-  final double budget;
+  final List<Transaction> transactions;
+  final double? budget;
 
-  const TransactionLoaded({
-    required this.transactions,
-    this.budget = 5000,
-  });
+  const TransactionLoaded({required this.transactions, this.budget});
 
-  /// Derived data from transactions
   double get totalSpent => transactions
       .where((t) => t.isExpense)
       .fold(0.0, (sum, t) => sum + t.amount);
@@ -32,11 +27,9 @@ class TransactionLoaded extends TransactionState {
       .where((t) => t.isIncome)
       .fold(0.0, (sum, t) => sum + t.amount);
 
-  /// Daily spending for the line chart
   Map<DateTime, double> get dailySpending {
     final now = DateTime.now();
     final result = <DateTime, double>{};
-
     for (var i = 6; i >= 0; i--) {
       final day = DateTime(now.year, now.month, now.day - i);
       final total = transactions
@@ -58,7 +51,6 @@ class TransactionLoaded extends TransactionState {
 class TransactionError extends TransactionState {
   final String message;
   const TransactionError(this.message);
-
   @override
   List<Object?> get props => [message];
 }

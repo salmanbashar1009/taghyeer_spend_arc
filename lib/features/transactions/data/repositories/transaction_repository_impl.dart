@@ -1,15 +1,15 @@
+import 'dart:convert';
 import 'package:fpdart/fpdart.dart';
-import 'package:taghyeer_spend_arc/core/error/exceptions.dart';
-import 'package:taghyeer_spend_arc/core/error/failures.dart';
-import 'package:taghyeer_spend_arc/core/network/network_info.dart';
-import 'package:taghyeer_spend_arc/core/offline/write_queue.dart';
-import 'package:taghyeer_spend_arc/features/transactions/data/data_sources/transaction_remote_datasource.dart';
-import 'package:taghyeer_spend_arc/features/transactions/data/models/transaction_model.dart';
-import 'package:taghyeer_spend_arc/features/transactions/domain/entities/transaction_entity.dart';
-import 'package:taghyeer_spend_arc/features/transactions/domain/repositories/transaction_repository.dart';
 
+import '../../../../core/error/exceptions.dart';
+import '../../../../core/error/failures.dart';
+import '../../../../core/network/network_info.dart';
+import '../../../../core/offline/write_queue.dart';
+import '../../domain/entities/transaction_entity.dart';
+import '../../domain/repositories/transaction_repository.dart';
 import '../data_sources/transaction_local_datasource.dart';
-
+import '../data_sources/transaction_remote_datasource.dart';
+import '../models/transaction_model.dart';
 
 class TransactionRepositoryImpl implements TransactionRepository {
   final TransactionLocalDataSource localDataSource;
@@ -25,50 +25,48 @@ class TransactionRepositoryImpl implements TransactionRepository {
   });
 
   @override
-  Future<Either<Failure, List<TransactionEntity>>> getTransactions() async {
+  Future<Either<Failure, List<Transaction>>> getTransactions() async {
     try {
       final localModels = await localDataSource.getTransactions();
       return Right(localModels.map((m) => m.toEntity()).toList());
     } on CacheException catch (e) {
       return Left(CacheFailure(message: e.message));
+    } catch (e) {
+      return Left(CacheFailure(message: e.toString()));
     }
   }
 
   @override
-  Future<Either<Failure, TransactionEntity>> addTransaction(
-      TransactionEntity transaction) async {
+  Future<Either<Failure, Transaction>> addTransaction(
+      Transaction transaction) async {
     try {
       final model = TransactionModel.fromEntity(transaction);
-
-      // Write to local DB immediately: user sees it instantly
       await localDataSource.insertTransaction(model);
-
       await writeQueue.enqueue(
         operation: 'create',
-        payload: model.toJson(),
+        payload: jsonEncode(model.toJson()),
       );
-
       return Right(transaction);
     } on CacheException catch (e) {
       return Left(CacheFailure(message: e.message));
+    } catch (e) {
+      return Left(CacheFailure(message: e.toString()));
     }
   }
 
   @override
   Future<Either<Failure, void>> deleteTransaction(String id) async {
     try {
-      // Soft-delete locally — instant UI update
       await localDataSource.softDeleteTransaction(id);
-
-
       await writeQueue.enqueue(
         operation: 'delete',
-        payload: {'id': id},
+        payload: jsonEncode({'id': id}),
       );
-
       return const Right(null);
     } on CacheException catch (e) {
       return Left(CacheFailure(message: e.message));
+    } catch (e) {
+      return Left(CacheFailure(message: e.toString()));
     }
   }
 
@@ -80,52 +78,52 @@ class TransactionRepositoryImpl implements TransactionRepository {
         return const Left(ServerFailure(message: 'No internet connection'));
       }
 
+      var pushed = 0;
+      var pulled = 0;
+
+      // Process write queue
       await writeQueue.processAll(
         onProcess: (operation, payload) async {
           if (operation == 'create') {
-            final model = TransactionModel.fromJson(
-                Map<String, dynamic>.from(payload));
+            final model = TransactionModel.fromJson(payload);
             await remoteDataSource.create(model);
             await localDataSource.markAsSynced(model.id);
+            pushed++;
           } else if (operation == 'delete') {
             await remoteDataSource.softDelete(payload['id'] as String);
+            pushed++;
           }
         },
       );
 
-      // Pull remote state
-      final remoteModels = await remoteDataSource.fetchAll();
-
+      // Push unsynced
       final localUnsynced = await localDataSource.getUnsyncedTransactions();
-      final localAll = await localDataSource.getTransactions();
-
-      // Push any remaining unsynced items
       if (localUnsynced.isNotEmpty) {
         await remoteDataSource.pushUnsynced(localUnsynced);
         for (final model in localUnsynced) {
           await localDataSource.markAsSynced(model.id);
         }
+        pushed += localUnsynced.length;
       }
 
-      final remoteToUpsert = remoteModels.where((remote) {
-        final localMatch = localAll.where((l) => l.id == remote.id);
-        if (localMatch.isEmpty) return true;
+      // Pull remote
+      final remoteModels = await remoteDataSource.fetchAll();
+      final localAll = await localDataSource.getTransactions();
+      final localIds = localAll.map((m) => m.id).toSet();
 
-        return remote.updatedAt.compareTo(localMatch.first.updatedAt) > 0;
-      }).toList();
-
-      if (remoteToUpsert.isNotEmpty) {
-        await localDataSource.upsertTransactions(remoteToUpsert);
+      final newRemote = remoteModels.where((r) => !localIds.contains(r.id)).toList();
+      if (newRemote.isNotEmpty) {
+        await localDataSource.upsertTransactions(newRemote);
+        pulled = newRemote.length;
       }
 
-      return Right(SyncResult(
-        pushed: localUnsynced.length,
-        pulled: remoteToUpsert.length,
-      ));
+      return Right(SyncResult(pushed: pushed, pulled: pulled));
     } on ServerException catch (e) {
       return Left(ServerFailure(message: e.message, code: e.statusCode));
     } on CacheException catch (e) {
       return Left(CacheFailure(message: e.message));
+    } catch (e) {
+      return Left(ServerFailure(message: e.toString()));
     }
   }
 }

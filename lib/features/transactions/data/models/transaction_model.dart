@@ -1,11 +1,11 @@
 
-import 'package:taghyeer_spend_arc/features/transactions/domain/entities/transaction_entity.dart';
+import '../../domain/entities/transaction_entity.dart';
 
 class TransactionModel {
   final String id;
   final String title;
   final double amount;
-  final String type; // 'income' | 'expense' — stored as string
+  final String type;
   final String category;
   final String date;
   final int isSynced;
@@ -24,7 +24,6 @@ class TransactionModel {
     required this.updatedAt,
   });
 
-
   factory TransactionModel.fromMap(Map<String, dynamic> map) {
     return TransactionModel(
       id: map['id'] as String,
@@ -39,22 +38,14 @@ class TransactionModel {
     );
   }
 
-
   Map<String, dynamic> toMap() {
     return {
-      'id': id,
-      'title': title,
-      'amount': amount,
-      'type': type,
-      'category': category,
-      'date': date,
-      'is_synced': isSynced,
-      'is_deleted': isDeleted,
-      'updated_at': updatedAt,
+      'id': id, 'title': title, 'amount': amount, 'type': type,
+      'category': category, 'date': date,
+      'is_synced': isSynced, 'is_deleted': isDeleted, 'updated_at': updatedAt,
     };
   }
 
-  /// From the remote API's JSON payload.
   factory TransactionModel.fromJson(Map<String, dynamic> json) {
     return TransactionModel(
       id: json['id'] as String,
@@ -63,7 +54,7 @@ class TransactionModel {
       type: json['type'] as String,
       category: json['category'] as String,
       date: json['date'] as String,
-      isSynced: json['is_synced'] as int? ?? 1, // remote data is synced by definition
+      isSynced: json['is_synced'] as int? ?? 1,
       isDeleted: json['is_deleted'] as int? ?? 0,
       updatedAt: json['updated_at'] as String,
     );
@@ -71,23 +62,14 @@ class TransactionModel {
 
   Map<String, dynamic> toJson() {
     return {
-      'id': id,
-      'title': title,
-      'amount': amount,
-      'type': type,
-      'category': category,
-      'date': date,
-      'is_synced': isSynced,
-      'is_deleted': isDeleted,
-      'updated_at': updatedAt,
+      'id': id, 'title': title, 'amount': amount, 'type': type,
+      'category': category, 'date': date,
+      'is_synced': isSynced, 'is_deleted': isDeleted, 'updated_at': updatedAt,
     };
   }
 
-  /// ── Mapping to/from domain entity ──
-  /// This is the boundary where data ↔ domain translation happens.
-
-  TransactionEntity toEntity() {
-    return TransactionEntity(
+  Transaction toEntity() {
+    return Transaction(
       id: id,
       title: title,
       amount: amount,
@@ -100,7 +82,7 @@ class TransactionModel {
     );
   }
 
-  factory TransactionModel.fromEntity(TransactionEntity entity) {
+  factory TransactionModel.fromEntity(Transaction entity) {
     return TransactionModel(
       id: entity.id,
       title: entity.title,

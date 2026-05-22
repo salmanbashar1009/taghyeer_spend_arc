@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:taghyeer_spend_arc/features/transactions/domain/entities/transaction_entity.dart';
 import 'package:taghyeer_spend_arc/features/transactions/presentation/widgets/spring_swipe_delete.dart';
+
+import '../../domain/entities/transaction_entity.dart';
 
 
 class TransactionListItem extends StatelessWidget {
-  final TransactionEntity transaction;
+  final Transaction transaction;
   final VoidCallback onDelete;
 
   const TransactionListItem({
@@ -35,7 +36,9 @@ class TransactionListItem extends StatelessWidget {
             ),
           ),
           title: Text(transaction.title),
-          subtitle: Text(transaction.category),
+          subtitle: Text(
+            '${transaction.category} • ${_formatDate(transaction.date)}',
+          ),
           trailing: Text(
             '${transaction.isExpense ? "-" : "+"}\$${transaction.amount.toStringAsFixed(2)}',
             style: theme.textTheme.titleSmall?.copyWith(
@@ -48,5 +51,9 @@ class TransactionListItem extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  String _formatDate(DateTime date) {
+    return '${date.day}/${date.month}';
   }
 }

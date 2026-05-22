@@ -1,10 +1,13 @@
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 
 class ArcMeter extends StatelessWidget {
   final double spent;
   final double budget;
-  final double animationValue; // 0..1 from AnimationController
+  final double animationValue;
   final double size;
+  final ui.FragmentShader? glowShader;
+  final double? shaderTime;
 
   const ArcMeter({
     super.key,
@@ -12,28 +15,30 @@ class ArcMeter extends StatelessWidget {
     required this.budget,
     required this.animationValue,
     this.size = 220,
+    this.glowShader,
+    this.shaderTime,
   });
 
   @override
   Widget build(BuildContext context) {
-    final ratio = budget <= 0 ? 0.0 : (spent / budget).clamp(0.0, 1.5);
+    // Fallback budget of 1 to avoid division by zero and show progress even if income is 0
+    final effectiveBudget = budget > 0 ? budget : 1000.0;
+    final ratio = (spent / effectiveBudget).clamp(0.0, 1.5);
     final animatedRatio = ratio * animationValue;
-
+    final isOverspent = spent > effectiveBudget && budget > 0;
     final theme = Theme.of(context);
 
     return SizedBox(
       width: size,
-      height: size * 0.65, // Arc is top-half only
+      height: size * 0.65,
       child: CustomPaint(
         painter: _ArcMeterPainter(
           ratio: animatedRatio,
           backgroundColor: theme.colorScheme.surfaceContainerHighest,
-          // Gradient from green → orange → red based on ratio
-          arcColors: [
-            theme.colorScheme.primary,
-            theme.colorScheme.tertiary,
-            theme.colorScheme.error,
-          ],
+          startColor: theme.colorScheme.primary,
+          endColor: ratio > 0.8 ? theme.colorScheme.error : theme.colorScheme.tertiary,
+          glowShader: isOverspent ? glowShader : null,
+          shaderTime: shaderTime ?? 0,
         ),
         child: Align(
           alignment: const Alignment(0, 0.6),
@@ -44,15 +49,27 @@ class ArcMeter extends StatelessWidget {
                 '${(ratio * 100).toStringAsFixed(0)}%',
                 style: theme.textTheme.headlineMedium?.copyWith(
                   fontWeight: FontWeight.bold,
+                  color: isOverspent ? theme.colorScheme.error : null,
                 ),
               ),
               const SizedBox(height: 2),
               Text(
-                '${spent.toStringAsFixed(0)} / ${budget.toStringAsFixed(0)}',
+                '\$${spent.toStringAsFixed(0)} / \$${effectiveBudget.toStringAsFixed(0)}',
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
               ),
+              if (isOverspent)
+                Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Text(
+                    'OVER BUDGET',
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: theme.colorScheme.error,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
             ],
           ),
         ),
@@ -64,84 +81,73 @@ class ArcMeter extends StatelessWidget {
 class _ArcMeterPainter extends CustomPainter {
   final double ratio;
   final Color backgroundColor;
-  final List<Color> arcColors;
+  final Color startColor;
+  final Color endColor;
+  final ui.FragmentShader? glowShader;
+  final double shaderTime;
 
   _ArcMeterPainter({
     required this.ratio,
     required this.backgroundColor,
-    required this.arcColors,
+    required this.startColor,
+    required this.endColor,
+    this.glowShader,
+    required this.shaderTime,
   });
 
   @override
   void paint(Canvas canvas, Size size) {
-    const strokeWidth = 18.0;
-    const startAngle = 3.14159; // π — left side
-    const sweepAngle = 3.14159; // π — semi-circle
+    const strokeWidth = 20.0;
+    const startAngle = 3.14159; 
+    const sweepAngle = 3.14159; 
 
     final center = Offset(size.width / 2, size.height);
     final radius = (size.width / 2) - strokeWidth / 2;
+    final rect = Rect.fromCircle(center: center, radius: radius);
 
-    // Background arc
-    final bgPaint = Paint()
-      ..color = backgroundColor
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round
-      ..strokeWidth = strokeWidth;
+    // Glow Shader
+    if (glowShader != null) {
+      glowShader!
+        ..setFloat(0, size.width)
+        ..setFloat(1, size.height)
+        ..setFloat(2, shaderTime)
+        ..setFloat(3, endColor.red / 255)
+        ..setFloat(4, endColor.green / 255)
+        ..setFloat(5, endColor.blue / 255)
+        ..setFloat(6, 1.0);
+      
+      canvas.drawCircle(center, radius + 10, Paint()..shader = glowShader);
+    }
+
+    // Background
     canvas.drawArc(
-      Rect.fromCircle(center: center, radius: radius),
-      startAngle,
-      sweepAngle,
-      false,
-      bgPaint,
-    );
-
-    // Foreground arc — only draw if there's something to show
-    if (ratio > 0) {
-      final clampedSweep = (sweepAngle * ratio.clamp(0.0, 1.0));
-
-
-      final rect = Rect.fromCircle(center: center, radius: radius);
-      final gradient = SweepGradient(
-        startAngle: startAngle,
-        endAngle: startAngle + clampedSweep,
-        colors: arcColors.length >= 3
-            ? [
-          arcColors[0],
-          if (ratio > 0.5) arcColors[1],
-          if (ratio > 0.8) arcColors[2],
-        ]
-            : arcColors,
-        stops: _computeStops(ratio),
-      );
-
-      final fgPaint = Paint()
-        ..shader = gradient.createShader(rect)
+      rect, startAngle, sweepAngle, false,
+      Paint()
+        ..color = backgroundColor
         ..style = PaintingStyle.stroke
         ..strokeCap = StrokeCap.round
-        ..strokeWidth = strokeWidth;
+        ..strokeWidth = strokeWidth,
+    );
 
+    // Progress
+    if (ratio > 0) {
+      final clampedSweep = sweepAngle * ratio.clamp(0.0, 1.0);
       canvas.drawArc(
-        Rect.fromCircle(center: center, radius: radius),
-        startAngle,
-        clampedSweep,
-        false,
-        fgPaint,
+        rect, startAngle, clampedSweep, false,
+        Paint()
+          ..shader = ui.Gradient.linear(
+            Offset(rect.left, center.dy),
+            Offset(rect.right, center.dy),
+            [startColor, endColor],
+          )
+          ..style = PaintingStyle.stroke
+          ..strokeCap = StrokeCap.round
+          ..strokeWidth = strokeWidth,
       );
     }
   }
 
-  /// Dynamically compute gradient stops so the color transition
-  List<double> _computeStops(double ratio) {
-    if (ratio <= 0.5) return [0.0, 1.0];
-    if (ratio <= 0.8) return [0.0, 0.5, 1.0];
-    return [0.0, 0.4, 0.8, 1.0];
-  }
-
-
   @override
-  bool shouldRepaint(_ArcMeterPainter oldDelegate) {
-    return oldDelegate.ratio != ratio ||
-        oldDelegate.backgroundColor != backgroundColor;
-  }
+  bool shouldRepaint(_ArcMeterPainter old) => 
+      old.ratio != ratio || old.shaderTime != shaderTime || old.glowShader != glowShader;
 }
-

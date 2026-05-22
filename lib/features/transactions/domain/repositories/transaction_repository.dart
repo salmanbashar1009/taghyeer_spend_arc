@@ -3,10 +3,10 @@ import 'package:taghyeer_spend_arc/core/error/failures.dart';
 import 'package:taghyeer_spend_arc/features/transactions/domain/entities/transaction_entity.dart';
 
 abstract class TransactionRepository {
-  Future<Either<Failure, List<TransactionEntity>>> getTransactions();
+  Future<Either<Failure, List<Transaction>>> getTransactions();
 
-  Future<Either<Failure, TransactionEntity>> addTransaction(
-      TransactionEntity transaction);
+  Future<Either<Failure, Transaction>> addTransaction(
+      Transaction transaction);
 
   Future<Either<Failure, void>> deleteTransaction(String transactionId);
 

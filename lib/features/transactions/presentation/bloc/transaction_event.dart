@@ -15,7 +15,7 @@ class LoadTransactions extends TransactionEvent {}
 
 /// Add a new transaction
 class AddTransactionEvent extends TransactionEvent {
-  final TransactionEntity transaction;
+  final Transaction transaction;
   const AddTransactionEvent(this.transaction);
 
   @override
