@@ -63,7 +63,7 @@ class _DashboardPageState extends State<DashboardPage> with TickerProviderStateM
               slivers: [
                 SliverAppBar(
                   floating: true,
-                  title: const Text('Dashboard'),
+                  title: const Text('SpendArc'),
                   surfaceTintColor: Colors.transparent,
                 ),
                 SliverToBoxAdapter(

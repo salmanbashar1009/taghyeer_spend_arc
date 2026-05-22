@@ -1,5 +1,5 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import 'package:flutter/physics.dart';
 
 class SpringSwipeDelete extends StatefulWidget {
   final Widget child;
@@ -19,12 +19,11 @@ class SpringSwipeDelete extends StatefulWidget {
   State<SpringSwipeDelete> createState() => _SpringSwipeDeleteState();
 }
 
-class _SpringSwipeDeleteState extends State<SpringSwipeDelete>
-    with SingleTickerProviderStateMixin {
+class _SpringSwipeDeleteState extends State<SpringSwipeDelete> {
   double _dragOffset = 0;
-  bool _hasBeenDismissed = false;
+  bool _isDeleting = false;
 
-  static const double _deleteThreshold = 0.3;
+  static const double _deleteThreshold = 0.35;
 
   @override
   Widget build(BuildContext context) {
@@ -34,74 +33,189 @@ class _SpringSwipeDeleteState extends State<SpringSwipeDelete>
 
     return Stack(
       children: [
-        // Delete background
+        // 1. Delete Background (Red bar with icon)
         Positioned.fill(
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: Container(
-              color: widget.deleteColor.withOpacity(deleteProgress * 0.8),
-              child: Align(
-                alignment: Alignment.centerRight,
-                child: Padding(
-                  padding: const EdgeInsets.only(right: 24),
-                  child: Icon(
-                    widget.deleteIcon,
-                    color: Colors.white.withOpacity(deleteProgress),
-                    size: 28,
-                  ),
-                ),
+          child: Container(
+            margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 16),
+            decoration: BoxDecoration(
+              color: widget.deleteColor.withOpacity(deleteProgress * 0.9),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            alignment: Alignment.centerRight,
+            padding: const EdgeInsets.only(right: 24),
+            child: Opacity(
+              opacity: deleteProgress,
+              child: Transform.scale(
+                scale: 0.5 + (0.5 * deleteProgress),
+                child: Icon(widget.deleteIcon, color: Colors.white, size: 28),
               ),
             ),
           ),
         ),
 
-        // Content — offset by drag
-        Transform.translate(
-          offset: Offset(-_dragOffset, 0),
-          child: GestureDetector(
-            onHorizontalDragUpdate: (details) {
-              if (_hasBeenDismissed) return;
-              setState(() {
-                _dragOffset =
-                    (_dragOffset - details.delta.dx).clamp(0.0, screenWidth);
-              });
-            },
-            onHorizontalDragEnd: (details) {
-              if (_hasBeenDismissed) return;
-              final threshold = screenWidth * _deleteThreshold;
-
-              if (_dragOffset > threshold) {
-                // Past threshold — animate off screen
-                _hasBeenDismissed = true;
-
-                // Use spring to animate the rest
-                final simulation = SpringDescription(
-                  mass: 1.0,
-                  stiffness: 80.0,
-                  damping: 12.0,
-                );
-
-                // Simple approach: just animate off and call onDeleted
+        // 2. Foreground Item (The Tile)
+        if (!_isDeleting)
+          Transform.translate(
+            offset: Offset(-_dragOffset, 0),
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onHorizontalDragUpdate: (details) {
                 setState(() {
-                  _dragOffset = screenWidth; // Slide fully off
+                  _dragOffset = (_dragOffset - details.delta.dx).clamp(0.0, screenWidth);
                 });
-
-                Future.delayed(const Duration(milliseconds: 200), () {
-                  if (mounted) {
-                    widget.onDeleted();
-                  }
-                });
-              } else {
-                // Not past threshold — spring back
-                setState(() {
-                  _dragOffset = 0;
-                });
-              }
-            },
-            child: widget.child,
+              },
+              onHorizontalDragEnd: (details) {
+                if (_dragOffset > threshold) {
+                  _onSwipeComplete();
+                } else {
+                  setState(() => _dragOffset = 0);
+                }
+              },
+              child: widget.child,
+            ),
           ),
-        ),
       ],
     );
   }
+
+  void _onSwipeComplete() {
+    // 1. Get position for the burst effect before the widget is removed
+    final RenderBox? renderBox = context.findRenderObject() as RenderBox?;
+    if (renderBox != null && renderBox.hasSize) {
+      final size = renderBox.size;
+      final offset = renderBox.localToGlobal(Offset.zero);
+      _spawnOverlayBurst(offset + Offset(size.width / 2, size.height / 2));
+    }
+
+    // 2. Set deleting state to hide the child locally
+    setState(() {
+      _isDeleting = true;
+    });
+
+    // 3. Trigger actual deletion in the Bloc (Instant state update)
+    widget.onDeleted();
+  }
+
+  void _spawnOverlayBurst(Offset center) {
+    late OverlayEntry entry;
+    entry = OverlayEntry(
+      builder: (context) => _ParticleBurstOverlay(
+        center: center,
+        color: widget.deleteColor,
+        onComplete: () {
+          entry.remove();
+        },
+      ),
+    );
+    Overlay.of(context).insert(entry);
+  }
+}
+
+/// A standalone widget that handles the particle animation in the Overlay.
+class _ParticleBurstOverlay extends StatefulWidget {
+  final Offset center;
+  final Color color;
+  final VoidCallback onComplete;
+
+  const _ParticleBurstOverlay({
+    required this.center,
+    required this.color,
+    required this.onComplete,
+  });
+
+  @override
+  State<_ParticleBurstOverlay> createState() => _ParticleBurstOverlayState();
+}
+
+class _ParticleBurstOverlayState extends State<_ParticleBurstOverlay>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  final List<_BurstParticle> _particles = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    );
+
+    final random = math.Random();
+    for (int i = 0; i < 35; i++) {
+      final angle = random.nextDouble() * 2 * math.pi;
+      final speed = 2.0 + random.nextDouble() * 7.0;
+      _particles.add(_BurstParticle(
+        position: widget.center,
+        velocity: Offset(math.cos(angle) * speed, math.sin(angle) * speed),
+        size: 2.0 + random.nextDouble() * 5.0,
+      ));
+    }
+
+    _controller.addListener(() {
+      for (var p in _particles) {
+        p.update();
+      }
+      if (mounted) setState(() {});
+    });
+
+    _controller.forward().then((_) {
+      if (mounted) widget.onComplete();
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Wrapping in Positioned.fill and SizedBox.expand ensures the widget
+    // has valid constraints and size immediately upon being added to the Overlay.
+    return Positioned.fill(
+      child: IgnorePointer(
+        child: SizedBox.expand(
+          child: CustomPaint(
+            painter: _BurstPainter(_particles, widget.color),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _BurstParticle {
+  Offset position;
+  Offset velocity;
+  double size;
+  double opacity = 1.0;
+
+  _BurstParticle({required this.position, required this.velocity, required this.size});
+
+  void update() {
+    position += velocity;
+    opacity -= 0.025;
+    if (opacity < 0) opacity = 0;
+  }
+}
+
+class _BurstPainter extends CustomPainter {
+  final List<_BurstParticle> particles;
+  final Color color;
+  _BurstPainter(this.particles, this.color);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint();
+    for (var p in particles) {
+      if (p.opacity > 0) {
+        paint.color = color.withOpacity(p.opacity);
+        canvas.drawCircle(p.position, p.size, paint);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }

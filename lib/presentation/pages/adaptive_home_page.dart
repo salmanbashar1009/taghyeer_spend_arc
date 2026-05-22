@@ -82,7 +82,8 @@ class _AdaptiveHomePageState extends State<AdaptiveHomePage>
       if (_wasConnected != null && _wasConnected != isConnected) {
         final message = isConnected ? "Back Online - Syncing data" : "Offline Mode - Data saved locally";
         final icon = isConnected ? Icons.wifi : Icons.wifi_off;
-        
+
+        if (!mounted) return;
         ScaffoldMessenger.of(context).clearSnackBars();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
