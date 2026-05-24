@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../features/transactions/presentation/bloc/transaction_bloc.dart';
-import '../../features/transactions/presentation/bloc/transaction_event.dart';
-import '../../features/transactions/presentation/bloc/transaction_state.dart';
-import '../../features/transactions/presentation/widgets/transaction_list_item.dart';
+import '../bloc/transaction_bloc.dart';
+import '../bloc/transaction_event.dart';
+import '../bloc/transaction_state.dart';
+import '../widgets/transaction_list_item.dart';
 import '../widgets/summary_card.dart';
 
 class TransactionsPage extends StatelessWidget {

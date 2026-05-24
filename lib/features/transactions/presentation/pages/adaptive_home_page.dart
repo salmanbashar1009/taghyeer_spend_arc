@@ -5,14 +5,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uuid/uuid.dart';
 
-import '../../core/di/injection_container.dart';
-import '../../features/transactions/domain/entities/transaction_entity.dart';
-import '../../features/transactions/presentation/bloc/sync/sync_bloc.dart';
-import '../../features/transactions/presentation/bloc/sync/sync_event.dart';
-import '../../features/transactions/presentation/bloc/sync/sync_state.dart';
-import '../../features/transactions/presentation/bloc/transaction_bloc.dart';
-import '../../features/transactions/presentation/bloc/transaction_event.dart';
-import '../../features/transactions/presentation/bloc/transaction_state.dart';
+import '../../../../core/di/injection_container.dart';
+import '../../domain/entities/transaction_entity.dart';
+import '../bloc/sync/sync_bloc.dart';
+import '../bloc/sync/sync_event.dart';
+import '../bloc/sync/sync_state.dart';
+import '../bloc/transaction_bloc.dart';
+import '../bloc/transaction_event.dart';
+import '../bloc/transaction_state.dart';
 import '../widgets/adaptive_home_grid.dart';
 import '../widgets/adaptive_scaffold.dart';
 

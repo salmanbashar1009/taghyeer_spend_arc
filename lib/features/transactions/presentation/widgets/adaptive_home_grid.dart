@@ -1,12 +1,12 @@
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../features/transactions/presentation/bloc/transaction_bloc.dart';
-import '../../features/transactions/presentation/bloc/transaction_event.dart';
-import '../../features/transactions/presentation/bloc/transaction_state.dart';
-import '../../features/transactions/presentation/widgets/arc_meter.dart';
-import '../../features/transactions/presentation/widgets/spending_line_chart.dart';
-import '../../features/transactions/presentation/widgets/transaction_list_item.dart';
+import '../bloc/transaction_bloc.dart';
+import '../bloc/transaction_event.dart';
+import '../bloc/transaction_state.dart';
+import 'arc_meter.dart';
+import 'spending_line_chart.dart';
+import 'transaction_list_item.dart';
 
 class AdaptiveHomeGrid extends StatelessWidget {
   final TransactionLoaded state;

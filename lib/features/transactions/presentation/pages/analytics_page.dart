@@ -1,10 +1,10 @@
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../features/transactions/presentation/bloc/transaction_bloc.dart';
-import '../../features/transactions/presentation/bloc/transaction_state.dart';
-import '../../features/transactions/presentation/widgets/arc_meter.dart';
-import '../../features/transactions/presentation/widgets/spending_line_chart.dart';
+import '../bloc/transaction_bloc.dart';
+import '../bloc/transaction_state.dart';
+import '../widgets/arc_meter.dart';
+import '../widgets/spending_line_chart.dart';
 import '../widgets/summary_card.dart';
 
 class AnalyticsPage extends StatefulWidget {
