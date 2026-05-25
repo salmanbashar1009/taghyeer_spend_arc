@@ -19,14 +19,44 @@ class SpringSwipeDelete extends StatefulWidget {
   State<SpringSwipeDelete> createState() => _SpringSwipeDeleteState();
 }
 
-class _SpringSwipeDeleteState extends State<SpringSwipeDelete> {
+class _SpringSwipeDeleteState extends State<SpringSwipeDelete>
+    with SingleTickerProviderStateMixin {
   double _dragOffset = 0;
   bool _isDeleting = false;
+  late AnimationController _sizeController;
+  late Animation<double> _sizeAnimation;
 
   static const double _deleteThreshold = 0.35;
 
   @override
+  void initState() {
+    super.initState();
+    _sizeController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+    _sizeAnimation = CurvedAnimation(
+      parent: _sizeController,
+      curve: Curves.easeInOut,
+    );
+  }
+
+  @override
+  void dispose() {
+    _sizeController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    if (_isDeleting) {
+      return SizeTransition(
+        sizeFactor: _sizeAnimation,
+        axisAlignment: 0.0,
+        child: const SizedBox(width: double.infinity),
+      );
+    }
+
     final screenWidth = MediaQuery.of(context).size.width;
     final threshold = screenWidth * _deleteThreshold;
     final deleteProgress = (_dragOffset / threshold).clamp(0.0, 1.0);
@@ -54,31 +84,34 @@ class _SpringSwipeDeleteState extends State<SpringSwipeDelete> {
         ),
 
         // 2. Foreground Item (The Tile)
-        if (!_isDeleting)
-          Transform.translate(
-            offset: Offset(-_dragOffset, 0),
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onHorizontalDragUpdate: (details) {
-                setState(() {
-                  _dragOffset = (_dragOffset - details.delta.dx).clamp(0.0, screenWidth);
-                });
-              },
-              onHorizontalDragEnd: (details) {
-                if (_dragOffset > threshold) {
-                  _onSwipeComplete();
-                } else {
-                  setState(() => _dragOffset = 0);
-                }
-              },
-              child: widget.child,
-            ),
+        Transform.translate(
+          offset: Offset(-_dragOffset, 0),
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onHorizontalDragUpdate: (details) {
+              if (_isDeleting) return;
+              setState(() {
+                _dragOffset = (_dragOffset - details.delta.dx).clamp(0.0, screenWidth);
+              });
+            },
+            onHorizontalDragEnd: (details) {
+              if (_isDeleting) return;
+              if (_dragOffset > threshold) {
+                _onSwipeComplete();
+              } else {
+                setState(() => _dragOffset = 0);
+              }
+            },
+            child: widget.child,
           ),
+        ),
       ],
     );
   }
 
   void _onSwipeComplete() {
+    if (_isDeleting) return;
+
     // 1. Get position for the burst effect before the widget is removed
     final RenderBox? renderBox = context.findRenderObject() as RenderBox?;
     if (renderBox != null && renderBox.hasSize) {
@@ -87,13 +120,16 @@ class _SpringSwipeDeleteState extends State<SpringSwipeDelete> {
       _spawnOverlayBurst(offset + Offset(size.width / 2, size.height / 2));
     }
 
-    // 2. Set deleting state to hide the child locally
+    // 2. Set deleting state and start collapse animation
     setState(() {
       _isDeleting = true;
     });
-
-    // 3. Trigger actual deletion in the Bloc (Instant state update)
-    widget.onDeleted();
+    
+    _sizeController.value = 1.0;
+    _sizeController.reverse().then((_) {
+      // 3. Trigger actual deletion in the Bloc after animation
+      widget.onDeleted();
+    });
   }
 
   void _spawnOverlayBurst(Offset center) {
@@ -111,7 +147,6 @@ class _SpringSwipeDeleteState extends State<SpringSwipeDelete> {
   }
 }
 
-/// A standalone widget that handles the particle animation in the Overlay.
 class _ParticleBurstOverlay extends StatefulWidget {
   final Offset center;
   final Color color;
@@ -171,8 +206,6 @@ class _ParticleBurstOverlayState extends State<_ParticleBurstOverlay>
 
   @override
   Widget build(BuildContext context) {
-    // Wrapping in Positioned.fill and SizedBox.expand ensures the widget
-    // has valid constraints and size immediately upon being added to the Overlay.
     return Positioned.fill(
       child: IgnorePointer(
         child: SizedBox.expand(

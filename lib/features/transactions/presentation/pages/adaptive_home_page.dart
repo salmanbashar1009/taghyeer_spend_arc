@@ -189,6 +189,8 @@ class _AdaptiveHomePageState extends State<AdaptiveHomePage>
     var selectedType = TransactionType.expense;
     var selectedCategory = 'General';
 
+    final categories = ['General', 'Food', 'Transport', 'Shopping', 'Bills', 'Entertainment', 'Health', 'Income'];
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -218,13 +220,25 @@ class _AdaptiveHomePageState extends State<AdaptiveHomePage>
                 decoration: const InputDecoration(labelText: 'Amount', border: OutlineInputBorder(), prefixText: '\$ '),
               ),
               const SizedBox(height: 16),
+              DropdownButtonFormField<String>(
+                value: selectedCategory,
+                decoration: const InputDecoration(labelText: 'Category', border: OutlineInputBorder()),
+                items: categories.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
+                onChanged: (v) => setSheetState(() => selectedCategory = v!),
+              ),
+              const SizedBox(height: 16),
               SegmentedButton<TransactionType>(
                 segments: const [
                   ButtonSegment(value: TransactionType.expense, label: Text('Expense'), icon: Icon(Icons.remove_circle_outline)),
                   ButtonSegment(value: TransactionType.income, label: Text('Income'), icon: Icon(Icons.add_circle_outline)),
                 ],
                 selected: {selectedType},
-                onSelectionChanged: (v) => setSheetState(() => selectedType = v.first),
+                onSelectionChanged: (v) => setSheetState(() {
+                   selectedType = v.first;
+                   if (selectedType == TransactionType.income) {
+                     selectedCategory = 'Income';
+                   }
+                }),
               ),
               const SizedBox(height: 24),
               SizedBox(

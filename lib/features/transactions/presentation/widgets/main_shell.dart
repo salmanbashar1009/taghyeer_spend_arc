@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:ui' as ui;
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -118,10 +117,14 @@ class _MainShellState extends State<MainShell> with TickerProviderStateMixin {
     final titleCtrl = TextEditingController();
     final amountCtrl = TextEditingController();
     var selectedType = TransactionType.expense;
+    var selectedCategory = 'General';
+
+    final categories = ['General', 'Food', 'Transport', 'Shopping', 'Bills', 'Entertainment', 'Health', 'Income'];
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (sheetContext) => StatefulBuilder(
         builder: (context, setSheetState) => Padding(
           padding: EdgeInsets.only(
@@ -132,10 +135,11 @@ class _MainShellState extends State<MainShell> with TickerProviderStateMixin {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text('New Transaction', style: Theme.of(context).textTheme.titleLarge),
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
               TextField(
                 controller: titleCtrl,
                 decoration: const InputDecoration(labelText: 'Title', border: OutlineInputBorder()),
+                autofocus: true,
               ),
               const SizedBox(height: 12),
               TextField(
@@ -144,17 +148,30 @@ class _MainShellState extends State<MainShell> with TickerProviderStateMixin {
                 decoration: const InputDecoration(labelText: 'Amount', border: OutlineInputBorder(), prefixText: '\$ '),
               ),
               const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                value: selectedCategory,
+                decoration: const InputDecoration(labelText: 'Category', border: OutlineInputBorder()),
+                items: categories.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
+                onChanged: (v) => setSheetState(() => selectedCategory = v!),
+              ),
+              const SizedBox(height: 16),
               SegmentedButton<TransactionType>(
                 segments: const [
                   ButtonSegment(value: TransactionType.expense, label: Text('Expense')),
                   ButtonSegment(value: TransactionType.income, label: Text('Income')),
                 ],
                 selected: {selectedType},
-                onSelectionChanged: (v) => setSheetState(() => selectedType = v.first),
+                onSelectionChanged: (v) => setSheetState(() {
+                  selectedType = v.first;
+                  if (selectedType == TransactionType.income) {
+                    selectedCategory = 'Income';
+                  }
+                }),
               ),
               const SizedBox(height: 20),
               SizedBox(
                 width: double.infinity,
+                height: 50,
                 child: FilledButton(
                   onPressed: () {
                     final amount = double.tryParse(amountCtrl.text) ?? 0;
@@ -164,14 +181,14 @@ class _MainShellState extends State<MainShell> with TickerProviderStateMixin {
                         title: titleCtrl.text,
                         amount: amount,
                         type: selectedType,
-                        category: 'General',
+                        category: selectedCategory,
                         date: DateTime.now(),
                         updatedAt: DateTime.now(),
                       )));
                       Navigator.pop(sheetContext);
                     }
                   },
-                  child: const Text('Save'),
+                  child: const Text('Save Transaction'),
                 ),
               ),
             ],

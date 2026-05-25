@@ -16,9 +16,17 @@ class TransactionsPage extends StatelessWidget {
         title: const Text('Transactions'),
         surfaceTintColor: Colors.transparent,
       ),
-      body: BlocBuilder<TransactionBloc, TransactionState>(
+      body: BlocConsumer<TransactionBloc, TransactionState>(
+        listener: (context, state) {
+          if (state is TransactionError) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(state.message), backgroundColor: Colors.red),
+            );
+          }
+        },
+        buildWhen: (previous, current) => current is! TransactionError,
         builder: (context, state) {
-          if (state is TransactionLoading) {
+          if (state is TransactionLoading && state is! TransactionLoaded) {
             return const Center(child: CircularProgressIndicator());
           }
           if (state is TransactionLoaded) {
@@ -37,6 +45,7 @@ class TransactionsPage extends StatelessWidget {
                           itemBuilder: (context, index) {
                             final tx = state.transactions[index];
                             return TransactionListItem(
+                              key: ValueKey(tx.id),
                               transaction: tx,
                               onDelete: () => context
                                   .read<TransactionBloc>()
@@ -48,7 +57,10 @@ class TransactionsPage extends StatelessWidget {
               ],
             );
           }
-          return const SizedBox.shrink();
+          if (state is TransactionInitial) {
+             return const Center(child: CircularProgressIndicator());
+          }
+          return const Center(child: Text('Something went wrong.'));
         },
       ),
     );

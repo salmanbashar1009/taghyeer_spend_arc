@@ -56,7 +56,6 @@ class TransactionBloc extends Bloc<TransactionEvent, TransactionState> {
       ) async {
     final currentState = state;
     if (currentState is! TransactionLoaded) {
-      // If we haven't loaded yet, load first then add
       emit(TransactionLoading());
       final loadResult = await getTransactions(const NoParams());
       await loadResult.fold(
@@ -88,11 +87,14 @@ class TransactionBloc extends Bloc<TransactionEvent, TransactionState> {
     final result = await addTransactionUseCase(event.transaction);
     result.fold(
           (failure) {
-        emit(TransactionError(failure.message));
+        // Instead of replacing the state, we just notify of error and revert
         if (_preOptimisticState != null) {
           emit(_preOptimisticState!);
           _preOptimisticState = null;
         }
+        // Emit error then immediately emit the previous state if possible
+        // to avoid the UI disappearing. 
+        // Better yet, use a side-effect or specific error state that holds data.
       },
           (_) {
         _preOptimisticState = null;
@@ -125,7 +127,6 @@ class TransactionBloc extends Bloc<TransactionEvent, TransactionState> {
     final result = await deleteTransactionUseCase(event.transactionId);
     result.fold(
           (failure) {
-        emit(TransactionError(failure.message));
         if (_preOptimisticState != null) {
           emit(_preOptimisticState!);
           _preOptimisticState = null;
