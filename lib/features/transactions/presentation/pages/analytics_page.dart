@@ -62,6 +62,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> with TickerProviderStateM
       appBar: AppBar(
         title: const Text('Analytics'),
         surfaceTintColor: Colors.transparent,
+        backgroundColor: Colors.transparent,
       ),
       body: BlocBuilder<TransactionBloc, TransactionState>(
         builder: (context, state) {

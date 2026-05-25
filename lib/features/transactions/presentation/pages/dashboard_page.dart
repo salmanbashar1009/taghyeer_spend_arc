@@ -65,6 +65,7 @@ class _DashboardPageState extends State<DashboardPage> with TickerProviderStateM
                   floating: true,
                   title: const Text('SpendArc'),
                   surfaceTintColor: Colors.transparent,
+                  backgroundColor: Colors.transparent,
                 ),
                 SliverToBoxAdapter(
                   child: Column(

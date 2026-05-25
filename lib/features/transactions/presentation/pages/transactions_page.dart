@@ -15,6 +15,7 @@ class TransactionsPage extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Transactions'),
         surfaceTintColor: Colors.transparent,
+        backgroundColor: Colors.transparent,
       ),
       body: BlocConsumer<TransactionBloc, TransactionState>(
         listener: (context, state) {

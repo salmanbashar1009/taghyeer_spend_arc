@@ -175,7 +175,7 @@ class _MainShellState extends State<MainShell> with TickerProviderStateMixin {
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
-                initialValue: selectedCategory,
+                value: selectedCategory,
                 decoration: const InputDecoration(
                   labelText: 'Category',
                   border: OutlineInputBorder(),
@@ -198,12 +198,15 @@ class _MainShellState extends State<MainShell> with TickerProviderStateMixin {
                   ),
                 ],
                 selected: {selectedType},
-                onSelectionChanged: (v) => setSheetState(() {
-                  selectedType = v.first;
-                  if (selectedType == TransactionType.income) {
-                    selectedCategory = 'Income';
-                  }
-                }),
+                onSelectionChanged: (Set<TransactionType> values) {
+                  setSheetState(() {
+                    if (values.contains(TransactionType.expense)) {
+                      selectedType = TransactionType.expense;
+                    } else if (values.contains(TransactionType.income)) {
+                      selectedType = TransactionType.income;
+                    }
+                  });
+                },
               ),
               const SizedBox(height: 20),
               SizedBox(
