@@ -3,7 +3,6 @@ import 'package:taghyeer_spend_arc/features/transactions/presentation/widgets/sp
 
 import '../../domain/entities/transaction_entity.dart';
 
-
 class TransactionListItem extends StatelessWidget {
   final Transaction transaction;
   final VoidCallback onDelete;
@@ -19,6 +18,7 @@ class TransactionListItem extends StatelessWidget {
     final theme = Theme.of(context);
 
     return SpringSwipeDelete(
+      key: key!,
       onDeleted: onDelete,
       child: Card(
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -57,3 +57,38 @@ class TransactionListItem extends StatelessWidget {
     return '${date.day}/${date.month}';
   }
 }
+
+// lib/features/transactions/presentation/widgets/transaction_list_item.dart
+
+// class TransactionListItem extends StatelessWidget {
+//   final Transaction transaction;
+//   final VoidCallback onDelete;
+//
+//   const TransactionListItem({
+//     required Key key, // Ensure Key is required and passed
+//     required this.transaction,
+//     required this.onDelete,
+//   }) : super(key: key);
+//
+//   @override
+//   Widget build(BuildContext context) {
+//     return Dismissible(
+//       key: key!, // Use the same key as the widget
+//       direction: DismissDirection.endToStart,
+//       background: Container(
+//         color: Colors.red,
+//         alignment: Alignment.centerRight,
+//         padding: const EdgeInsets.only(right: 20),
+//         child: const Icon(Icons.delete, color: Colors.white),
+//       ),
+//       onDismissed: (direction) {
+//         onDelete(); // Trigger the Bloc event
+//       },
+//       child: ListTile(
+//         title: Text(transaction.title),
+//         subtitle: Text(transaction.date.toString()),
+//         trailing: Text('${transaction.amount}'),
+//       ),
+//     );
+//   }
+// }

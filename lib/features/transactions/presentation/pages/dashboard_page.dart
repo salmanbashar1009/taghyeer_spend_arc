@@ -111,6 +111,7 @@ class _DashboardPageState extends State<DashboardPage> with TickerProviderStateM
                       (context, index) {
                         final tx = state.transactions[index];
                         return TransactionListItem(
+                          key: ValueKey(tx.id),
                           transaction: tx,
                           onDelete: () => context.read<TransactionBloc>().add(DeleteTransactionEvent(tx.id)),
                         );

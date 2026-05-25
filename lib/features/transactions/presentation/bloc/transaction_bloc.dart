@@ -1,4 +1,3 @@
-
 import 'dart:async';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -17,6 +16,7 @@ class TransactionBloc extends Bloc<TransactionEvent, TransactionState> {
 
   TransactionLoaded? _preOptimisticState;
   StreamSubscription? _syncSubscription;
+  final Set<String> _deletingTransactionIds = {};
 
   TransactionBloc({
     required this.getTransactions,
@@ -39,39 +39,36 @@ class TransactionBloc extends Bloc<TransactionEvent, TransactionState> {
   }
 
   Future<void> _onLoadTransactions(
-      LoadTransactions event,
-      Emitter<TransactionState> emit,
-      ) async {
+    LoadTransactions event,
+    Emitter<TransactionState> emit,
+  ) async {
     emit(TransactionLoading());
     final result = await getTransactions(const NoParams());
     result.fold(
-          (failure) => emit(TransactionError(failure.message)),
-          (transactions) => emit(TransactionLoaded(transactions: transactions)),
+      (failure) => emit(TransactionError(failure.message)),
+      (transactions) => emit(TransactionLoaded(transactions: transactions)),
     );
   }
 
   Future<void> _onAddTransaction(
-      AddTransactionEvent event,
-      Emitter<TransactionState> emit,
-      ) async {
+    AddTransactionEvent event,
+    Emitter<TransactionState> emit,
+  ) async {
     final currentState = state;
     if (currentState is! TransactionLoaded) {
       emit(TransactionLoading());
       final loadResult = await getTransactions(const NoParams());
       await loadResult.fold(
-            (failure) async => emit(TransactionError(failure.message)),
-            (transactions) async {
+        (failure) async => emit(TransactionError(failure.message)),
+        (transactions) async {
           final optimisticList = [...transactions, event.transaction];
           emit(TransactionLoaded(transactions: optimisticList));
 
           final result = await addTransactionUseCase(event.transaction);
-          result.fold(
-                (failure) {
-              emit(TransactionError(failure.message));
-              emit(TransactionLoaded(transactions: transactions));
-            },
-                (_) {},
-          );
+          result.fold((failure) {
+            emit(TransactionError(failure.message));
+            emit(TransactionLoaded(transactions: transactions));
+          }, (_) {});
         },
       );
       return;
@@ -79,78 +76,93 @@ class TransactionBloc extends Bloc<TransactionEvent, TransactionState> {
 
     _preOptimisticState = currentState;
     final optimisticList = [...currentState.transactions, event.transaction];
-    emit(TransactionLoaded(
-      transactions: optimisticList,
-      budget: currentState.budget,
-    ));
+    emit(
+      TransactionLoaded(
+        transactions: optimisticList,
+        budget: currentState.budget,
+      ),
+    );
 
     final result = await addTransactionUseCase(event.transaction);
     result.fold(
-          (failure) {
+      (failure) {
         // Instead of replacing the state, we just notify of error and revert
         if (_preOptimisticState != null) {
           emit(_preOptimisticState!);
           _preOptimisticState = null;
         }
         // Emit error then immediately emit the previous state if possible
-        // to avoid the UI disappearing. 
+        // to avoid the UI disappearing.
         // Better yet, use a side-effect or specific error state that holds data.
       },
-          (_) {
+      (_) {
         _preOptimisticState = null;
       },
     );
   }
 
   Future<void> _onDeleteTransaction(
-      DeleteTransactionEvent event,
-      Emitter<TransactionState> emit,
-      ) async {
+    DeleteTransactionEvent event,
+    Emitter<TransactionState> emit,
+  ) async {
     final currentState = state;
     if (currentState is! TransactionLoaded) return;
+
+    // Prevent duplicate delete operations for the same transaction
+    if (_deletingTransactionIds.contains(event.transactionId)) return;
+    _deletingTransactionIds.add(event.transactionId);
 
     final deletedItem = currentState.transactions
         .where((t) => t.id == event.transactionId)
         .firstOrNull;
-    if (deletedItem == null) return;
+    if (deletedItem == null) {
+      _deletingTransactionIds.remove(event.transactionId);
+      return;
+    }
 
     _preOptimisticState = currentState;
     final optimisticList = currentState.transactions
         .where((t) => t.id != event.transactionId)
         .toList();
 
-    emit(TransactionLoaded(
-      transactions: optimisticList,
-      budget: currentState.budget,
-    ));
+    emit(
+      TransactionLoaded(
+        transactions: optimisticList,
+        budget: currentState.budget,
+      ),
+    );
 
     final result = await deleteTransactionUseCase(event.transactionId);
     result.fold(
-          (failure) {
+      (failure) {
         if (_preOptimisticState != null) {
           emit(_preOptimisticState!);
           _preOptimisticState = null;
         }
+        _deletingTransactionIds.remove(event.transactionId);
       },
-          (_) {
+      (_) {
         _preOptimisticState = null;
+        _deletingTransactionIds.remove(event.transactionId);
       },
     );
   }
 
   Future<void> _onTransactionsSynced(
-      TransactionsSynced event,
-      Emitter<TransactionState> emit,
-      ) async {
+    TransactionsSynced event,
+    Emitter<TransactionState> emit,
+  ) async {
     final result = await getTransactions(const NoParams());
     result.fold(
-          (failure) => emit(TransactionError(failure.message)),
-          (transactions) => emit(TransactionLoaded(
-        transactions: transactions,
-        budget: state is TransactionLoaded
-            ? (state as TransactionLoaded).budget
-            : 5000,
-      )),
+      (failure) => emit(TransactionError(failure.message)),
+      (transactions) => emit(
+        TransactionLoaded(
+          transactions: transactions,
+          budget: state is TransactionLoaded
+              ? (state as TransactionLoaded).budget
+              : 5000,
+        ),
+      ),
     );
   }
 

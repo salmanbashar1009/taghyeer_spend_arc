@@ -107,6 +107,7 @@ class AdaptiveHomeGrid extends StatelessWidget {
                     (context, index) {
                       final tx = state.transactions[index];
                       return TransactionListItem(
+                        key: ValueKey(tx.id),
                         transaction: tx,
                         onDelete: () => context.read<TransactionBloc>().add(DeleteTransactionEvent(tx.id)),
                       );
@@ -187,6 +188,7 @@ class AdaptiveHomeGrid extends StatelessWidget {
       itemBuilder: (context, index) {
         final tx = state.transactions[index];
         return TransactionListItem(
+          key: ValueKey(tx.id),
           transaction: tx,
           onDelete: () => context.read<TransactionBloc>().add(DeleteTransactionEvent(tx.id)),
         );

@@ -23,6 +23,7 @@ class _SpringSwipeDeleteState extends State<SpringSwipeDelete>
     with SingleTickerProviderStateMixin {
   double _dragOffset = 0;
   bool _isDeleting = false;
+  bool _deleteCallbackCalled = false;
   late AnimationController _sizeController;
   late Animation<double> _sizeAnimation;
 
@@ -53,7 +54,7 @@ class _SpringSwipeDeleteState extends State<SpringSwipeDelete>
       return SizeTransition(
         sizeFactor: _sizeAnimation,
         axisAlignment: 0.0,
-        child: const SizedBox(width: double.infinity),
+        child: widget.child,
       );
     }
 
@@ -91,7 +92,10 @@ class _SpringSwipeDeleteState extends State<SpringSwipeDelete>
             onHorizontalDragUpdate: (details) {
               if (_isDeleting) return;
               setState(() {
-                _dragOffset = (_dragOffset - details.delta.dx).clamp(0.0, screenWidth);
+                _dragOffset = (_dragOffset - details.delta.dx).clamp(
+                  0.0,
+                  screenWidth,
+                );
               });
             },
             onHorizontalDragEnd: (details) {
@@ -110,7 +114,7 @@ class _SpringSwipeDeleteState extends State<SpringSwipeDelete>
   }
 
   void _onSwipeComplete() {
-    if (_isDeleting) return;
+    if (_isDeleting || _deleteCallbackCalled) return;
 
     // 1. Get position for the burst effect before the widget is removed
     final RenderBox? renderBox = context.findRenderObject() as RenderBox?;
@@ -124,11 +128,15 @@ class _SpringSwipeDeleteState extends State<SpringSwipeDelete>
     setState(() {
       _isDeleting = true;
     });
-    
+
     _sizeController.value = 1.0;
     _sizeController.reverse().then((_) {
       // 3. Trigger actual deletion in the Bloc after animation
-      widget.onDeleted();
+      // Guard against multiple calls
+      if (!_deleteCallbackCalled) {
+        _deleteCallbackCalled = true;
+        widget.onDeleted();
+      }
     });
   }
 
@@ -179,11 +187,13 @@ class _ParticleBurstOverlayState extends State<_ParticleBurstOverlay>
     for (int i = 0; i < 35; i++) {
       final angle = random.nextDouble() * 2 * math.pi;
       final speed = 2.0 + random.nextDouble() * 7.0;
-      _particles.add(_BurstParticle(
-        position: widget.center,
-        velocity: Offset(math.cos(angle) * speed, math.sin(angle) * speed),
-        size: 2.0 + random.nextDouble() * 5.0,
-      ));
+      _particles.add(
+        _BurstParticle(
+          position: widget.center,
+          velocity: Offset(math.cos(angle) * speed, math.sin(angle) * speed),
+          size: 2.0 + random.nextDouble() * 5.0,
+        ),
+      );
     }
 
     _controller.addListener(() {
@@ -209,9 +219,7 @@ class _ParticleBurstOverlayState extends State<_ParticleBurstOverlay>
     return Positioned.fill(
       child: IgnorePointer(
         child: SizedBox.expand(
-          child: CustomPaint(
-            painter: _BurstPainter(_particles, widget.color),
-          ),
+          child: CustomPaint(painter: _BurstPainter(_particles, widget.color)),
         ),
       ),
     );
@@ -224,7 +232,11 @@ class _BurstParticle {
   double size;
   double opacity = 1.0;
 
-  _BurstParticle({required this.position, required this.velocity, required this.size});
+  _BurstParticle({
+    required this.position,
+    required this.velocity,
+    required this.size,
+  });
 
   void update() {
     position += velocity;

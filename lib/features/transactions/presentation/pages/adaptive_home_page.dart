@@ -31,7 +31,7 @@ class _AdaptiveHomePageState extends State<AdaptiveHomePage>
   late final AnimationController _meterController;
   late final AnimationController _chartController;
   late final AnimationController _shaderController;
-  
+
   StreamSubscription? _connectivitySubscription;
   bool? _wasConnected;
 
@@ -67,8 +67,12 @@ class _AdaptiveHomePageState extends State<AdaptiveHomePage>
 
   Future<void> _loadShaders() async {
     try {
-      _glowProgram = await ui.FragmentProgram.fromAsset('shaders/spending_glow.frag');
-      _shimmerProgram = await ui.FragmentProgram.fromAsset('shaders/sync_shimmer.frag');
+      _glowProgram = await ui.FragmentProgram.fromAsset(
+        'shaders/spending_glow.frag',
+      );
+      _shimmerProgram = await ui.FragmentProgram.fromAsset(
+        'shaders/sync_shimmer.frag',
+      );
       if (mounted) setState(() {});
     } catch (e) {
       debugPrint('Error loading shaders: $e');
@@ -76,11 +80,15 @@ class _AdaptiveHomePageState extends State<AdaptiveHomePage>
   }
 
   void _setupConnectivityListener() {
-    _connectivitySubscription = Connectivity().onConnectivityChanged.listen((results) {
+    _connectivitySubscription = Connectivity().onConnectivityChanged.listen((
+      results,
+    ) {
       final isConnected = !results.contains(ConnectivityResult.none);
-      
+
       if (_wasConnected != null && _wasConnected != isConnected) {
-        final message = isConnected ? "Back Online - Syncing data" : "Offline Mode - Data saved locally";
+        final message = isConnected
+            ? "Back Online - Syncing data"
+            : "Offline Mode - Data saved locally";
         final icon = isConnected ? Icons.wifi : Icons.wifi_off;
 
         if (!mounted) return;
@@ -94,7 +102,9 @@ class _AdaptiveHomePageState extends State<AdaptiveHomePage>
                 Text(message),
               ],
             ),
-            backgroundColor: isConnected ? Colors.green.shade700 : Colors.grey.shade800,
+            backgroundColor: isConnected
+                ? Colors.green.shade700
+                : Colors.grey.shade800,
             behavior: SnackBarBehavior.floating,
             duration: const Duration(seconds: 3),
           ),
@@ -133,14 +143,19 @@ class _AdaptiveHomePageState extends State<AdaptiveHomePage>
       ],
       child: AdaptiveScaffold(
         title: Align(
-            alignment: Alignment.centerLeft,
-            child: const Text('SpendArc')),
+          alignment: Alignment.centerLeft,
+          child: const Text('SpendArc'),
+        ),
         actions: [
           BlocBuilder<SyncBloc, SyncState>(
             builder: (context, state) {
               return IconButton(
-                icon: state is SyncInProgress 
-                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                icon: state is SyncInProgress
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
                     : const Icon(Icons.sync),
                 onPressed: () => _syncBloc.add(StartSync()),
               );
@@ -189,55 +204,100 @@ class _AdaptiveHomePageState extends State<AdaptiveHomePage>
     var selectedType = TransactionType.expense;
     var selectedCategory = 'General';
 
-    final categories = ['General', 'Food', 'Transport', 'Shopping', 'Bills', 'Entertainment', 'Health', 'Income'];
+    final categories = [
+      'General',
+      'Food',
+      'Transport',
+      'Shopping',
+      'Bills',
+      'Entertainment',
+      'Health',
+      'Income',
+    ];
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
       builder: (sheetContext) => StatefulBuilder(
         builder: (context, setSheetState) => Padding(
           padding: EdgeInsets.only(
-            left: 20, right: 20, top: 20,
+            left: 20,
+            right: 20,
+            top: 20,
             bottom: MediaQuery.of(context).viewInsets.bottom + 20,
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2))),
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
               const SizedBox(height: 20),
-              Text('New Transaction', style: Theme.of(context).textTheme.headlineSmall),
+              Text(
+                'New Transaction',
+                style: Theme.of(context).textTheme.headlineSmall,
+              ),
               const SizedBox(height: 24),
               TextField(
                 controller: titleCtrl,
-                decoration: const InputDecoration(labelText: 'What is this for?', border: OutlineInputBorder()),
+                decoration: const InputDecoration(
+                  labelText: 'What is this for?',
+                  border: OutlineInputBorder(),
+                ),
                 autofocus: true,
               ),
               const SizedBox(height: 16),
               TextField(
                 controller: amountCtrl,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                decoration: const InputDecoration(labelText: 'Amount', border: OutlineInputBorder(), prefixText: '\$ '),
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                decoration: const InputDecoration(
+                  labelText: 'Amount',
+                  border: OutlineInputBorder(),
+                  prefixText: '\$ ',
+                ),
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
-                value: selectedCategory,
-                decoration: const InputDecoration(labelText: 'Category', border: OutlineInputBorder()),
-                items: categories.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
+                initialValue: selectedCategory,
+                decoration: const InputDecoration(
+                  labelText: 'Category',
+                  border: OutlineInputBorder(),
+                ),
+                items: categories
+                    .map((c) => DropdownMenuItem(value: c, child: Text(c)))
+                    .toList(),
                 onChanged: (v) => setSheetState(() => selectedCategory = v!),
               ),
               const SizedBox(height: 16),
               SegmentedButton<TransactionType>(
                 segments: const [
-                  ButtonSegment(value: TransactionType.expense, label: Text('Expense'), icon: Icon(Icons.remove_circle_outline)),
-                  ButtonSegment(value: TransactionType.income, label: Text('Income'), icon: Icon(Icons.add_circle_outline)),
+                  ButtonSegment(
+                    value: TransactionType.expense,
+                    label: Text('Expense'),
+                    icon: Icon(Icons.remove_circle_outline),
+                  ),
+                  ButtonSegment(
+                    value: TransactionType.income,
+                    label: Text('Income'),
+                    icon: Icon(Icons.add_circle_outline),
+                  ),
                 ],
                 selected: {selectedType},
                 onSelectionChanged: (v) => setSheetState(() {
-                   selectedType = v.first;
-                   if (selectedType == TransactionType.income) {
-                     selectedCategory = 'Income';
-                   }
+                  selectedType = v.first;
+                  if (selectedType == TransactionType.income) {
+                    selectedCategory = 'Income';
+                  }
                 }),
               ),
               const SizedBox(height: 24),
@@ -248,15 +308,19 @@ class _AdaptiveHomePageState extends State<AdaptiveHomePage>
                   onPressed: () {
                     final amount = double.tryParse(amountCtrl.text) ?? 0;
                     if (titleCtrl.text.isNotEmpty && amount > 0) {
-                      _transactionBloc.add(AddTransactionEvent(Transaction(
-                        id: const Uuid().v4(),
-                        title: titleCtrl.text,
-                        amount: amount,
-                        type: selectedType,
-                        category: selectedCategory,
-                        date: DateTime.now(),
-                        updatedAt: DateTime.now(),
-                      )));
+                      _transactionBloc.add(
+                        AddTransactionEvent(
+                          Transaction(
+                            id: const Uuid().v4(),
+                            title: titleCtrl.text,
+                            amount: amount,
+                            type: selectedType,
+                            category: selectedCategory,
+                            date: DateTime.now(),
+                            updatedAt: DateTime.now(),
+                          ),
+                        ),
+                      );
                       Navigator.pop(sheetContext);
                     }
                   },
