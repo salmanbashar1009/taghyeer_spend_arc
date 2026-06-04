@@ -88,6 +88,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> with TickerProviderStateM
                   SummaryCard(
                     totalIncome: state.totalIncome,
                     totalSpent: state.totalSpent,
+                    totalRemain: state.totalIncome - state.totalSpent,
                   ),
                   const SizedBox(height: 32),
                   const Align(

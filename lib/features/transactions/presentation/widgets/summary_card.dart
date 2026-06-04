@@ -4,11 +4,13 @@ import 'summary_chip.dart';
 class SummaryCard extends StatelessWidget {
   final double totalIncome;
   final double totalSpent;
+  final double? totalRemain;
 
   const SummaryCard({
     super.key,
     required this.totalIncome,
     required this.totalSpent,
+     this.totalRemain
   });
 
   @override
@@ -22,11 +24,15 @@ class SummaryCard extends StatelessWidget {
             value: '\$${totalIncome.toStringAsFixed(0)}',
             color: Theme.of(context).colorScheme.primary,
           ),
-          const SizedBox(width: 12),
           SummaryChip(
             label: 'Spent',
             value: '\$${totalSpent.toStringAsFixed(0)}',
             color: Theme.of(context).colorScheme.error,
+          ),
+          if (totalRemain != null) SummaryChip(
+            label: 'Remain',
+            value: '\$${totalRemain?.toStringAsFixed(0)}',
+            color: Colors.deepOrangeAccent,
           ),
         ],
       ),

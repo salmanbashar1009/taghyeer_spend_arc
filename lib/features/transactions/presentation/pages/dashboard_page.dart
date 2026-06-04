@@ -84,6 +84,7 @@ class _DashboardPageState extends State<DashboardPage> with TickerProviderStateM
                       SummaryCard(
                         totalIncome: state.totalIncome,
                         totalSpent: state.totalSpent,
+                        totalRemain: state.totalIncome - state.totalSpent,
                       ),
                       const SizedBox(height: 16),
                       Padding(

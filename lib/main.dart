@@ -28,7 +28,7 @@ class SpendArcApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       routerConfig: router,
       theme: ThemeData(
-        colorSchemeSeed: Colors.indigo,
+        colorSchemeSeed: Colors.green,
         useMaterial3: true,
         brightness: Brightness.light,
       ),

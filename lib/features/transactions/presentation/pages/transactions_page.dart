@@ -36,6 +36,7 @@ class TransactionsPage extends StatelessWidget {
                 SummaryCard(
                   totalIncome: state.totalIncome,
                   totalSpent: state.totalSpent,
+                  totalRemain: state.totalIncome - state.totalSpent,
                 ),
                 const Divider(height: 1),
                 Expanded(
